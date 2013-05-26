@@ -94,22 +94,18 @@ module Flickr
         return
       end
 
-      # infer the output file from the input file in execution dir 
+      # infer the output file from the input file in execution dir
       outfile = File.join Dir.pwd, File.basename(name) if outfile.nil?
 
+      download_data id do |data|
+        file = Tempfile.new(SecureRandom.hex)
+        file.write data
+        file.flush
+        PNG.decode(file, outfile)
 
-      sizes = flickr.photos.getSizes(photo_id: id)
-      image = sizes.select { |s| s['label'].downcase == 'original' }.first
-      url = image['source']
-
-      file = Tempfile.new(SecureRandom.hex)
-      file.write open(url).read
-      file.flush
-
-      PNG.decode(file, outfile)
-
-      file.close!
-      file.unlink
+        file.close!
+        file.unlink
+      end
     end
 
     def files
@@ -117,6 +113,15 @@ module Flickr
     end
 
     private
+
+    def download_data id
+      sizes = flickr.photos.getSizes(photo_id: id)
+      image = sizes.select { |s| s['label'].downcase == 'original' }.first
+      url = image['source']
+      data = open(url).read
+      yield data if block_given?
+      data
+    end
 
     def update_dict!
       File.write DICT_FILE, Marshal.dump(@dict)
