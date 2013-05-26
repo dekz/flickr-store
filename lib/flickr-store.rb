@@ -78,7 +78,7 @@ module Flickr
       update_dict!
     end
 
-    def fetch(name, outfile)
+    def fetch(name, outfile=nil)
       if name =~ /^[0-9]+$/
         id = name
 
@@ -94,6 +94,10 @@ module Flickr
         return
       end
 
+      # infer the output file from the input file in execution dir 
+      outfile = File.join Dir.pwd, File.basename(name) if outfile.nil?
+
+
       sizes = flickr.photos.getSizes(photo_id: id)
       image = sizes.select { |s| s['label'].downcase == 'original' }.first
       url = image['source']
@@ -103,7 +107,7 @@ module Flickr
       file.flush
 
       PNG.decode(file, outfile)
-      
+
       file.close!
       file.unlink
     end
